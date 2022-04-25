@@ -52,6 +52,9 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy{
       this.previous = res.previous;
       this.next = res.next;
       this.data = res.results.map(item => DataMapper.transformToClient(item));
+      if(this.data.length < this.count && this.loadType === 'scroll'){
+        this.pageByManual$.next(1)
+      }
     })
   }
 
@@ -65,6 +68,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy{
       this.previous = res.previous;
       this.next = res.next;
       this.data = res.results.map(item => DataMapper.transformToClient(item));
+     
     })
   }
 
@@ -88,7 +92,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy{
       this.pageToLoad$.pipe(
         mergeMap((page:number)=>{
           return this.appService.getData(page).pipe(
-            takeWhile(_ => this.loadType === 'scroll'),
+            takeWhile( _ => this.loadType === 'scroll'),
             map((res: IResponse) => res),
             tap(res => {
               this.data = [ ...this.data, ...res.results.map(item => DataMapper.transformToClient(item))];
