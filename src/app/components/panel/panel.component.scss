@@ -1,0 +1,33 @@
+.panel {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    &-info {
+        font-weight: 600;
+        font-size: 1.2rem;
+    }
+
+    &-controls {
+        display: flex;
+    }
+}
+
+.switch-btn {
+    border: 2px solid #A4B8E9;
+    background-color: transparent;
+    padding: 10px;
+    cursor: pointer;
+    transition: .3s;
+    &:hover {
+        background: #A4B8E9;
+        color: #fff;
+    }
+    &.active {
+        border: 2px solid #9472E5;
+    }
+}
+
+.switch-btn:last-child {
+    margin-left: 5px;
+}

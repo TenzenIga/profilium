@@ -1,0 +1,18 @@
+
+<table class="table">
+    <tr class="table-header">
+        <th>Номер</th>
+        <th>Имя</th>
+        <th>Год рождения</th>
+        <th>Вес</th>
+        <th>Рост</th>
+    </tr>
+    <tr  class="table-row" *ngFor="let item of data; let i = index; trackBy: identify" [style.height]="height + 'px'">
+        <td>{{i+1}}</td>
+        <td>{{item.name}}</td>
+        <td>{{item.birthYear}}</td>
+        <td>{{item.mass}}</td>
+        <td>{{item.height}}</td>
+    </tr>
+</table>
+

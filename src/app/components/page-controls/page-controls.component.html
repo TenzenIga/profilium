@@ -1,0 +1,6 @@
+
+<div class="page-controls">
+    <button class="btn prev" [disabled]="!previous" (click)="onPrevClick()">Previous</button>
+    <button class="btn page">{{page}}</button>
+    <button class="btn next" [disabled]="!next" (click)="onNextClick()" >Next</button>
+</div>

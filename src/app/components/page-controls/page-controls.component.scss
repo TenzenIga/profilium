@@ -1,0 +1,30 @@
+.page-controls {
+    display: flex;
+}
+
+.btn {
+    border: 2px solid #A4B8E9;
+    background: transparent;
+    padding: 5px 12px;
+ 
+}
+.prev {
+    border-right: none;
+    border-radius: 12px 0 0 12px;
+    cursor: pointer;
+    &:not([disabled]):hover {
+        background: #A4B8E9;
+        color: #fff;
+    }
+}
+
+.next {
+    border-left: none;
+    border-radius: 0 12px 12px 0;
+    cursor: pointer;
+
+    &:not([disabled]):hover {
+        background: #A4B8E9;
+        color: #fff;
+    }
+}

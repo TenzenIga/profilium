@@ -1,0 +1,8 @@
+<div class="panel">
+    <span class="panel-info">Найдено: {{count}}
+   </span>
+    <div class="panel-controls">
+        <button class="switch-btn" [ngClass]="{'active': loadType === 'scroll'}" (click)="onClick()" >Динамическая прокрутка</button>
+        <button class="switch-btn" [ngClass]="{'active': loadType === 'page'}"  (click)="onClick()" >Постраничное переключение</button>
+    </div>
+  </div>
