@@ -46,7 +46,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy{
       filter(text => text.length > 2 || text.length === 0),
       debounceTime(200),
       distinctUntilChanged(),
-      switchMap( text =>  this.appService.search(text)),
+      switchMap(text => this.appService.search(text))
     ).subscribe((res: IResponse) => {
       this.count = res.count;
       this.previous = res.previous;
