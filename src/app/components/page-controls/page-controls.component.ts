@@ -16,18 +16,15 @@ export class PageControlsComponent {
   @Input()
   public next!: string | null;
 
-  @Output()
-  public nextPage = new EventEmitter();
-
-  @Output()
-  public prevPage = new EventEmitter();
+  @Output() 
+  public pageChange = new EventEmitter()
   
   public onNextClick(): void {
-    this.nextPage.emit()
+    this.pageChange.emit(this.page + 1)
   }
 
   public onPrevClick(): void {
-    this.prevPage.emit()
+    this.pageChange.emit(this.page - 1)
   }
 
 }

@@ -1,19 +1,18 @@
 <div class="container" >
-  <app-search-input ></app-search-input>
-  <app-panel [count]="count" (toggleLoadType)="changeLoadType()" [loadType]="loadType"></app-panel>
+  <div [formGroup]="searchForm">
+    <input type="search" formControlName="searchInput" #input>
+</div>  <app-panel [loadType]="loadType" [count]="count" (toggleLoadType)="changeLoadType()"></app-panel>
   <app-table 
-  *ngIf="data.length > 0;else nothingFound"
   [data]="data"
-  [loadType]="loadType"
   [height]="itemHeight"
   ></app-table>
-  <app-page-controls  *ngIf="loadType === 'page' && data.length > 0"
+  <app-page-controls
+    *ngIf="loadType === 'page'"
+    [next]="nextPage" 
+    [previous]="prevPage" 
     [page]="page"
-    [next]="next" 
-    [previous]="previous"
-    (nextPage)="goNextPage()"  
-    (prevPage)="goPrevPage()" >
-  </app-page-controls>
+    (pageChange)="changePage($event)"
+    ></app-page-controls>
 </div>
 
 

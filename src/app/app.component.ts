@@ -1,6 +1,7 @@
-import { AfterViewInit, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { BehaviorSubject, fromEvent, merge, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged, filter, map, mergeMap, switchMap, takeWhile, tap } from 'rxjs/operators';
+import { AfterViewInit, ChangeDetectionStrategy, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { BehaviorSubject, concat, fromEvent, merge, Observable, Subscription } from 'rxjs';
+import { concatMap, debounceTime, distinctUntilChanged, exhaustMap, filter, map, mergeAll, mergeMap, switchMap, takeUntil, takeWhile, tap, toArray } from 'rxjs/operators';
+import { FormControl, FormGroup } from '@angular/forms'; 
 
 import { AppService } from './app.service';
 import { SearchInputComponent } from './components/search-input/search-input.component';
@@ -10,107 +11,116 @@ import { DataMapper } from './shared/mapper';
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.scss']
+  styleUrls: ['./app.component.scss'],
 })
-export class AppComponent implements OnInit, AfterViewInit, OnDestroy{
-  public page: number = 1;
-  public next: string | null = null;
-  public previous: string | null = null;
-  public count:number = 0;
-  public data:IPeopleClient[] = [];
-  public loadType:'scroll' | 'page' = 'page';
-  public itemHeight = 40;
+export class AppComponent implements OnInit{
+  public searchForm = new FormGroup({
+    searchInput: new FormControl(''),
+  });
 
-  private searchSubscription$: Subscription | undefined;
+  public itemHeight = 40;
+  public nextPage: string | null = null;
+  public prevPage: string | null = null;
+  public loadType: 'scroll' | 'page' = 'scroll'
+  public count: number = 0;
+  public data:IPeopleClient[] = [];
+
   private numberOfItems = 10;
-  private pageByManual$ = new BehaviorSubject(1);
+  private pageSubject$ = new BehaviorSubject(1);
 
   private pageByScroll$ = fromEvent(window, "scroll").pipe(
     map(() => window.scrollY),
     filter(current => current >=  document.body.clientHeight - window.innerHeight),
     debounceTime(200),
     distinctUntilChanged(), 
-    map(y => Math.ceil((y + window.innerHeight)/ (this.itemHeight * this.numberOfItems))));
-   
-  private pageToLoad$ = merge(this.pageByManual$, this.pageByScroll$).pipe(
-    distinctUntilChanged(),
+    map(y => Math.ceil((y + window.innerHeight)/ (this.itemHeight * this.numberOfItems)))
   );
 
-  @ViewChild(SearchInputComponent)
-  input!:SearchInputComponent;
+  private pageToLoad$ = merge(this.pageSubject$, this.pageByScroll$).pipe(
+    takeWhile( _ => this.loadType === 'scroll'),
+    distinctUntilChanged()
+  );
+    
 
   constructor(private appService: AppService){}
 
-  ngAfterViewInit(){
-    this.searchSubscription$ = this.input.searchForm.get('searchInput')?.valueChanges.pipe(
+  ngOnInit(){
+    this.initInfinityScroll();
+
+    this.searchForm.get('searchInput')!.valueChanges.pipe(
       filter(text => text.length > 2 || text.length === 0),
       debounceTime(200),
       distinctUntilChanged(),
-      switchMap(text => this.appService.search(text))
-    ).subscribe((res: IResponse) => {
-      this.count = res.count;
-      this.previous = res.previous;
-      this.next = res.next;
-      this.data = res.results.map(item => DataMapper.transformToClient(item));
-      if(this.data.length < this.count && this.loadType === 'scroll'){
-        this.pageByManual$.next(1)
-      }
-    })
-  }
-
-  public ngOnInit(): void {
-    this.getDataByPage(this.page);    
-  }
-
- public getDataByPage(page: number = 1){
-    this.appService.getData(page).subscribe(res => {
-      this.count = res.count;
-      this.previous = res.previous;
-      this.next = res.next;
-      this.data = res.results.map(item => DataMapper.transformToClient(item));
-     
-    })
-  }
-
-  public goNextPage(){
-    this.page++;
-    this.getDataByPage(this.page)
-  }
-  public goPrevPage(){
-    this.page--;
-    this.getDataByPage(this.page)
-  }
-
-  public changeLoadType(): void {
-    this.page = 1;
-    this.data = [];
-    this.pageByManual$.next(1);
-    
-    this.loadType = this.loadType === 'page' ? 'scroll' : 'page';
-     
-    if(this.loadType === 'scroll'){
-      this.pageToLoad$.pipe(
-        mergeMap((page:number)=>{
-          return this.appService.getData(page).pipe(
-            takeWhile( _ => this.loadType === 'scroll'),
-            map((res: IResponse) => res),
-            tap(res => {
-              this.data = [ ...this.data, ...res.results.map(item => DataMapper.transformToClient(item))];
-              if((this.itemHeight * this.numberOfItems * page) < window.innerHeight) {
-                this.pageByManual$.next(page + 1);
-              }
-            })
-          )
+      switchMap( text => this.appService.search(text).pipe(
+        tap( res => {
+          this.count = res.count;
+          this.nextPage = res.next;
+          this.prevPage = res.previous;
         }),
-      ).subscribe();
-    }else{
-      this.getDataByPage(1)
+        map(res => res.results.map(p => DataMapper.transformToClient(p))))
+      )
+    ).subscribe(people => {
+      this.data = people
+      if(this.data.length < this.count && this.loadType === 'scroll'){
+        this.pageSubject$.next(1)
+      }
     }
-    
+    )
   }
 
-  ngOnDestroy(): void {
-    this.searchSubscription$?.unsubscribe(); 
-  }
+  changeLoadType(){
+    this.loadType = this.loadType === 'scroll' ? 'page' : 'scroll';
 
+    if(this.loadType === 'page'){
+      this.initLoadByPage();
+    }else{
+      this.initInfinityScroll();
+  }
+  this.pageSubject$.next(1);
 }
+
+  public get page() : number {
+    return this.pageSubject$.value;
+  }
+  
+  public changePage(page: number){
+    this.pageSubject$.next(page)
+  }
+
+
+  private initInfinityScroll(){
+   this.pageToLoad$.pipe(
+      mergeMap((page) => 
+         this.appService.getData(page).pipe(
+          tap(res => this.count = res.count),
+          map(res => res.results.map(p => DataMapper.transformToClient(p))),
+          tap(res => {
+            if((this.itemHeight * this.numberOfItems * page) < window.innerHeight) {
+              this.pageSubject$.next(page + 1);
+            }
+          })
+          )
+      )
+    ).subscribe( people => this.data  = [...this.data, ...people]);
+  }
+
+  private initLoadByPage(): void {
+    this.pageSubject$.pipe(
+      takeWhile( _ => this.loadType === 'page'),
+      mergeMap(page => 
+        this.appService.getData(page).pipe(
+          tap( res => {
+            this.count = res.count,
+            this.nextPage = res.next
+            this.prevPage = res.previous
+          }),
+          map(res => res.results.map(p => DataMapper.transformToClient(p))))
+        ) 
+      ).subscribe(people => this.data =people);
+  }
+
+  
+}
+
+
+
